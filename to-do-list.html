@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List App</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .todo-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .todo-header {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #new-task {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        #add-task-btn {
+            padding: 10px 15px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #add-task-btn:hover {
+            background-color: #45a049;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        .task-text {
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        .empty-list {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 20px 0;
+        }
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+        }
+        #task-counter {
+            text-align: right;
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container">
+        <h1>Todo List</h1>
+        
+        <div class="todo-header">
+            <input type="text" id="new-task" placeholder="Add a new task...">
+            <button id="add-task-btn">Add</button>
+        </div>
+        
+        <ul id="task-list">
+            <!-- Tasks will be added here dynamically -->
+            <li class="empty-list">No tasks yet. Add a task to get started!</li>
+        </ul>
+        
+        <div id="task-counter">Total tasks: 0</div>
+    </div>
+
+    <!-- jQuery from CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize task counter
+            let taskCount = 0;
+            
+            // Function to update the task counter
+            function updateTaskCounter() {
+                $('#task-counter').text(`Total tasks: ${taskCount}`);
+            }
+            
+            // Function to check if the list is empty and show/hide the empty message
+            function checkEmptyList() {
+                if (taskCount === 0) {
+                    $('.empty-list').show();
+                } else {
+                    $('.empty-list').hide();
+                }
+            }
+            
+            // Add a new task
+            $('#add-task-btn').click(function() {
+                addNewTask();
+            });
+            
+            // Allow pressing Enter to add a task
+            $('#new-task').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    addNewTask();
+                }
+            });
+            
+            // Function to add a new task
+            function addNewTask() {
+                const taskText = $('#new-task').val().trim();
+                
+                // Validate input
+                if (taskText === '') {
+                    alert('Please enter a task!');
+                    return;
+                }
+                
+                // Create new task element
+                const newTask = $(`
+                    <li>
+                        <input type="checkbox" class="task-checkbox">
+                        <span class="task-text">${taskText}</span>
+                        <button class="delete-btn">Delete</button>
+                    </li>
+                `);
+                
+                // Add the new task to the list
+                $('#task-list').append(newTask);
+                
+                // Clear the input field
+                $('#new-task').val('');
+                
+                // Increment task counter
+                taskCount++;
+                updateTaskCounter();
+                checkEmptyList();
+                
+                // Focus back on the input field
+                $('#new-task').focus();
+                
+                // Save to local storage
+                saveTasksToLocalStorage();
+            }
+            
+            // Mark task as completed (using event delegation for dynamically created elements)
+            $('#task-list').on('change', '.task-checkbox', function() {
+                const taskTextElement = $(this).siblings('.task-text');
+                
+                if ($(this).is(':checked')) {
+                    taskTextElement.addClass('completed');
+                } else {
+                    taskTextElement.removeClass('completed');
+                }
+                
+                // Save to local storage
+                saveTasksToLocalStorage();
+            });
+            
+            // Delete task (using event delegation)
+            $('#task-list').on('click', '.delete-btn', function() {
+                $(this).parent().fadeOut(300, function() {
+                    $(this).remove();
+                    taskCount--;
+                    updateTaskCounter();
+                    checkEmptyList();
+                    
+                    // Save to local storage
+                    saveTasksToLocalStorage();
+                });
+            });
+            
+            // Function to save tasks to local storage
+            function saveTasksToLocalStorage() {
+                const tasks = [];
+                
+                // Loop through all tasks and save their text and completed status
+                $('#task-list li').not('.empty-list').each(function() {
+                    const taskText = $(this).find('.task-text').text();
+                    const isCompleted = $(this).find('.task-checkbox').is(':checked');
+                    
+                    tasks.push({
+                        text: taskText,
+                        completed: isCompleted
+                    });
+                });
+                
+                // Save to local storage as JSON string
+                localStorage.setItem('todoTasks', JSON.stringify(tasks));
+            }
+            
+            // Function to load tasks from local storage
+            function loadTasksFromLocalStorage() {
+                const savedTasks = localStorage.getItem('todoTasks');
+                
+                if (savedTasks) {
+                    const tasks = JSON.parse(savedTasks);
+                    
+                    // Clear any existing tasks
+                    $('#task-list').empty();
+                    
+                    // Add each saved task to the list
+                    tasks.forEach(function(task) {
+                        const newTask = $(`
+                            <li>
+                                <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                                <span class="task-text ${task.completed ? 'completed' : ''}">${task.text}</span>
+                                <button class="delete-btn">Delete</button>
+                            </li>
+                        `);
+                        
+                        $('#task-list').append(newTask);
+                    });
+                    
+                    // Update task counter
+                    taskCount = tasks.length;
+                    updateTaskCounter();
+                    checkEmptyList();
+                }
+            }
+            
+            // Load tasks when the page loads
+            loadTasksFromLocalStorage();
+        });
+    </script>
+</body>
+</html>
